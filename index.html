@@ -1,0 +1,786 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GraphX - Graphing Calculator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111827;
+    color: white;
+    overflow: hidden;
+}
+
+.header {
+    height: 55px;
+    background: #1f2937;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    border-bottom: 1px solid #374151;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: bold;
+    color: #60a5fa;
+}
+
+.subtitle {
+    margin-left: 12px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.container {
+    display: flex;
+    height: calc(100vh - 55px);
+}
+
+/* LEFT PANEL */
+.sidebar {
+    width: 330px;
+    background: #1f2937;
+    border-right: 1px solid #374151;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.add-btn {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 7px;
+    background: #2563eb;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+
+.add-btn:hover {
+    background: #1d4ed8;
+}
+
+.expression {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 9px;
+    background: #111827;
+    padding: 8px;
+    border-radius: 7px;
+}
+
+.color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.expression input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    background: #374151;
+    border: 1px solid #4b5563;
+    color: white;
+    border-radius: 5px;
+    outline: none;
+}
+
+.expression input:focus {
+    border-color: #60a5fa;
+}
+
+.delete {
+    border: none;
+    background: transparent;
+    color: #ef4444;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.help {
+    margin-top: 18px;
+    color: #9ca3af;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.help code {
+    color: #93c5fd;
+}
+
+/* GRAPH */
+.graph-area {
+    position: relative;
+    flex: 1;
+    background: #ffffff;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+}
+
+canvas:active {
+    cursor: grabbing;
+}
+
+.controls {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.controls button {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.controls button:hover {
+    background: #f3f4f6;
+}
+
+.coordinates {
+    position: absolute;
+    left: 15px;
+    bottom: 15px;
+    background: rgba(17, 24, 39, 0.85);
+    color: white;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+@media(max-width:700px) {
+    .sidebar {
+        width: 250px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="logo">GraphX</div>
+    <div class="subtitle">Graphing Calculator</div>
+</div>
+
+<div class="container">
+
+    <div class="sidebar">
+
+        <button class="add-btn" onclick="addExpression()">
+            + Add Expression
+        </button>
+
+        <div id="expressions"></div>
+
+        <div class="help">
+            <b>Examples:</b><br><br>
+
+            <code>y = x^2</code><br>
+            <code>y = 2*x + 3</code><br>
+            <code>y = sin(x)</code><br>
+            <code>y = cos(x)</code><br>
+            <code>y = tan(x)</code><br>
+            <code>y = sqrt(x)</code><br>
+            <code>y = abs(x)</code><br><br>
+
+            Mouse drag → Move graph<br>
+            Mouse wheel → Zoom
+        </div>
+
+    </div>
+
+    <div class="graph-area">
+
+        <canvas id="graph"></canvas>
+
+        <div class="controls">
+            <button onclick="zoom(1.25)">+</button>
+            <button onclick="zoom(0.8)">−</button>
+            <button onclick="resetView()">⌂</button>
+        </div>
+
+        <div class="coordinates" id="coordinates">
+            x: 0 &nbsp;&nbsp; y: 0
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const canvas = document.getElementById("graph");
+const ctx = canvas.getContext("2d");
+const expressionsDiv = document.getElementById("expressions");
+const coordinates = document.getElementById("coordinates");
+
+let expressions = [];
+
+const colors = [
+    "#2563eb",
+    "#dc2626",
+    "#16a34a",
+    "#9333ea",
+    "#ea580c",
+    "#0891b2"
+];
+
+let view = {
+    x: 0,
+    y: 0,
+    scale: 50
+};
+
+let dragging = false;
+let lastMouse = {x: 0, y: 0};
+
+function resizeCanvas() {
+
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
+    );
+
+    draw();
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+
+/* ADD EXPRESSION */
+
+function addExpression(value = "") {
+
+    const id = Date.now();
+
+    expressions.push({
+        id: id,
+        value: value,
+        color: colors[expressions.length % colors.length]
+    });
+
+    renderExpressions();
+    draw();
+}
+
+
+/* RENDER INPUTS */
+
+function renderExpressions() {
+
+    expressionsDiv.innerHTML = "";
+
+    expressions.forEach((exp, index) => {
+
+        const div = document.createElement("div");
+
+        div.className = "expression";
+
+        div.innerHTML = `
+            <div class="color"
+                 style="background:${exp.color}">
+            </div>
+
+            <input
+                type="text"
+                placeholder="y = x^2"
+                value="${exp.value}"
+                data-id="${exp.id}"
+            >
+
+            <button class="delete"
+                    onclick="deleteExpression(${exp.id})">
+                ×
+            </button>
+        `;
+
+        expressionsDiv.appendChild(div);
+    });
+
+    document.querySelectorAll(".expression input")
+        .forEach(input => {
+
+            input.addEventListener("input", function() {
+
+                const id = Number(this.dataset.id);
+
+                const exp = expressions.find(e => e.id === id);
+
+                if (exp) {
+                    exp.value = this.value;
+                    draw();
+                }
+
+            });
+
+        });
+}
+
+
+/* DELETE */
+
+function deleteExpression(id) {
+
+    expressions =
+        expressions.filter(e => e.id !== id);
+
+    renderExpressions();
+    draw();
+}
+
+
+/* COORDINATE SYSTEM */
+
+function screenToMath(px, py) {
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    return {
+        x: (px - width / 2 - view.x) / view.scale,
+        y: -(py - height / 2 - view.y) / view.scale
+    };
+}
+
+
+function mathToScreen(x, y) {
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    return {
+        x: width / 2 + view.x + x * view.scale,
+        y: height / 2 + view.y - y * view.scale
+    };
+}
+
+
+/* DRAW GRID */
+
+function drawGrid() {
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    const gridSize = view.scale;
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#e5e7eb";
+
+    ctx.beginPath();
+
+    for (
+        let x = width / 2 + view.x % gridSize;
+        x < width;
+        x += gridSize
+    ) {
+
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+    }
+
+    for (
+        let x = width / 2 + view.x % gridSize;
+        x > 0;
+        x -= gridSize
+    ) {
+
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+    }
+
+    for (
+        let y = height / 2 + view.y % gridSize;
+        y < height;
+        y += gridSize
+    ) {
+
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+    }
+
+    for (
+        let y = height / 2 + view.y % gridSize;
+        y > 0;
+        y -= gridSize
+    ) {
+
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+    }
+
+    ctx.stroke();
+
+
+    /* AXES */
+
+    const origin = mathToScreen(0, 0);
+
+    ctx.strokeStyle = "#374151";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(origin.x, 0);
+    ctx.lineTo(origin.x, height);
+
+    ctx.moveTo(0, origin.y);
+    ctx.lineTo(width, origin.y);
+
+    ctx.stroke();
+
+
+    /* NUMBERS */
+
+    ctx.fillStyle = "#374151";
+    ctx.font = "12px Arial";
+
+    const step = chooseStep();
+
+    const minX = screenToMath(0, 0).x;
+    const maxX = screenToMath(width, 0).x;
+
+    for (
+        let x = Math.ceil(minX / step) * step;
+        x <= maxX;
+        x += step
+    ) {
+
+        if (Math.abs(x) < step / 10) continue;
+
+        const p = mathToScreen(x, 0);
+
+        ctx.fillText(
+            formatNumber(x),
+            p.x + 4,
+            origin.y - 5
+        );
+    }
+
+    const minY = screenToMath(0, height).y;
+    const maxY = screenToMath(0, 0).y;
+
+    for (
+        let y = Math.ceil(minY / step) * step;
+        y <= maxY;
+        y += step
+    ) {
+
+        if (Math.abs(y) < step / 10) continue;
+
+        const p = mathToScreen(0, y);
+
+        ctx.fillText(
+            formatNumber(y),
+            origin.x + 5,
+            p.y - 5
+        );
+    }
+}
+
+
+function chooseStep() {
+
+    const raw = 50 / view.scale;
+
+    const power = Math.pow(
+        10,
+        Math.floor(Math.log10(raw))
+    );
+
+    const normalized = raw / power;
+
+    let step;
+
+    if (normalized < 2) step = power;
+    else if (normalized < 5) step = 2 * power;
+    else step = 5 * power;
+
+    return step;
+}
+
+
+function formatNumber(n) {
+
+    if (Math.abs(n) < 0.00001) return "0";
+
+    return Number(n.toFixed(5));
+}
+
+
+/* EXPRESSION PARSER */
+
+function createFunction(expression) {
+
+    expression = expression
+        .toLowerCase()
+        .replace(/\s/g, "")
+        .replace(/^y=/, "")
+        .replace(/\^/g, "**")
+        .replace(/π/g, "Math.PI")
+        .replace(/\bpi\b/g, "Math.PI")
+        .replace(/\bsin\b/g, "Math.sin")
+        .replace(/\bcos\b/g, "Math.cos")
+        .replace(/\btan\b/g, "Math.tan")
+        .replace(/\bsqrt\b/g, "Math.sqrt")
+        .replace(/\babs\b/g, "Math.abs")
+        .replace(/\blog\b/g, "Math.log10")
+        .replace(/\bln\b/g, "Math.log")
+        .replace(/\bexp\b/g, "Math.exp");
+
+    try {
+
+        return new Function(
+            "x",
+            `"use strict"; return (${expression});`
+        );
+
+    } catch {
+
+        return null;
+    }
+}
+
+
+/* DRAW FUNCTIONS */
+
+function drawFunctions() {
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    expressions.forEach(exp => {
+
+        if (!exp.value.trim()) return;
+
+        const fn = createFunction(exp.value);
+
+        if (!fn) return;
+
+        ctx.strokeStyle = exp.color;
+        ctx.lineWidth = 2.5;
+
+        ctx.beginPath();
+
+        let started = false;
+        let previousY = null;
+
+        for (let px = 0; px < width; px += 1) {
+
+            const point = screenToMath(px, 0);
+
+            let y;
+
+            try {
+                y = fn(point.x);
+            } catch {
+                continue;
+            }
+
+            if (
+                typeof y !== "number" ||
+                !Number.isFinite(y)
+            ) {
+                started = false;
+                previousY = null;
+                continue;
+            }
+
+            const screen = mathToScreen(point.x, y);
+
+            if (
+                screen.y < -10000 ||
+                screen.y > height + 10000
+            ) {
+                started = false;
+                previousY = null;
+                continue;
+            }
+
+            if (
+                previousY !== null &&
+                Math.abs(screen.y - previousY) > height
+            ) {
+                started = false;
+            }
+
+            if (!started) {
+                ctx.moveTo(screen.x, screen.y);
+                started = true;
+            } else {
+                ctx.lineTo(screen.x, screen.y);
+            }
+
+            previousY = screen.y;
+        }
+
+        ctx.stroke();
+    });
+}
+
+
+/* MAIN DRAW */
+
+function draw() {
+
+    drawGrid();
+    drawFunctions();
+}
+
+
+/* ZOOM */
+
+function zoom(factor) {
+
+    view.scale *= factor;
+
+    view.scale =
+        Math.max(10, Math.min(500, view.scale));
+
+    draw();
+}
+
+
+/* RESET */
+
+function resetView() {
+
+    view.x = 0;
+    view.y = 0;
+    view.scale = 50;
+
+    draw();
+}
+
+
+/* MOUSE DRAG */
+
+canvas.addEventListener("mousedown", e => {
+
+    dragging = true;
+
+    lastMouse.x = e.clientX;
+    lastMouse.y = e.clientY;
+});
+
+
+window.addEventListener("mouseup", () => {
+
+    dragging = false;
+});
+
+
+window.addEventListener("mousemove", e => {
+
+    if (!dragging) return;
+
+    const dx = e.clientX - lastMouse.x;
+    const dy = e.clientY - lastMouse.y;
+
+    view.x += dx;
+    view.y += dy;
+
+    lastMouse.x = e.clientX;
+    lastMouse.y = e.clientY;
+
+    draw();
+});
+
+
+/* MOUSE WHEEL */
+
+canvas.addEventListener("wheel", e => {
+
+    e.preventDefault();
+
+    const factor =
+        e.deltaY < 0 ? 1.15 : 0.87;
+
+    const mouseBefore =
+        screenToMath(e.offsetX, e.offsetY);
+
+    view.scale *= factor;
+
+    view.scale =
+        Math.max(10, Math.min(500, view.scale));
+
+    const mouseAfter =
+        screenToMath(e.offsetX, e.offsetY);
+
+    view.x +=
+        (mouseAfter.x - mouseBefore.x)
+        * view.scale;
+
+    view.y -=
+        (mouseAfter.y - mouseBefore.y)
+        * view.scale;
+
+    draw();
+
+}, {passive:false});
+
+
+/* COORDINATES */
+
+canvas.addEventListener("mousemove", e => {
+
+    const point =
+        screenToMath(e.offsetX, e.offsetY);
+
+    coordinates.innerHTML =
+        `x: ${point.x.toFixed(2)}
+         &nbsp;&nbsp;
+         y: ${point.y.toFixed(2)}`;
+});
+
+
+/* START */
+
+addExpression("y = x^2");
+addExpression("y = sin(x)");
+
+resizeCanvas();
+
+</script>
+
+</body>
+</html>
+```

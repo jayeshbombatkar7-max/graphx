@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111827">
+<title>GraphPro — Advanced Graphing Calculator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.0.1/math.min.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+:root{
+    --bg:#0b1020;
+    --panel:#111827;
+    --panel2:#172033;
+    --border:#263247;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+    --accent:#4f8cff;
+    --danger:#ef4444;
+    --canvas:#ffffff;
+}
+
+body.light{
+    --bg:#eef2f7;
+    --panel:#ffffff;
+    --panel2:#f1f5f9;
+    --border:#d5dce6;
+    --text:#111827;
+    --muted:#64748b;
+    --canvas:#ffffff;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    margin:0;
+    overflow:hidden;
+    font-family:Inter,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.app{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* HEADER */
+
+.header{
+    height:62px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    z-index:10;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.logo{
+    width:40px;
+    height:40px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    font-size:21px;
+    background:linear-gradient(135deg,#4f8cff,#7c3aed);
+    box-shadow:0 0 22px rgba(79,140,255,.5);
+    animation:pulseLogo 2.2s infinite;
+}
+
+@keyframes pulseLogo{
+    0%,100%{
+        transform:scale(1);
+        box-shadow:0 0 18px rgba(79,140,255,.35);
+    }
+    50%{
+        transform:scale(1.06);
+        box-shadow:0 0 30px rgba(124,58,237,.65);
+    }
+}
+
+.brandText{
+    font-size:21px;
+    font-weight:800;
+}
+
+.brandText span{
+    color:#60a5fa;
+}
+
+.live{
+    margin-left:7px;
+    padding:3px 7px;
+    border-radius:20px;
+    font-size:9px;
+    background:#16a34a;
+    color:white;
+    vertical-align:middle;
+    animation:blink 1.5s infinite;
+}
+
+@keyframes blink{
+    50%{opacity:.45}
+}
+
+.headerButtons{
+    display:flex;
+    gap:7px;
+}
+
+.iconBtn{
+    width:39px;
+    height:39px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    border-radius:9px;
+    cursor:pointer;
+    font-size:17px;
+}
+
+.iconBtn:hover{
+    background:var(--accent);
+    color:white;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    min-height:0;
+    display:flex;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:350px;
+    min-width:280px;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+.toolbar{
+    display:flex;
+    gap:7px;
+    padding:10px;
+    border-bottom:1px solid var(--border);
+}
+
+.primary{
+    flex:1;
+    border:0;
+    border-radius:8px;
+    padding:10px;
+    background:var(--accent);
+    color:white;
+    cursor:pointer;
+    font-weight:700;
+}
+
+.secondary{
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--panel2);
+    color:var(--text);
+    cursor:pointer;
+    padding:0 12px;
+}
+
+/* EXPRESSIONS */
+
+.expressions{
+    flex:1;
+    overflow:auto;
+    padding:8px;
+}
+
+.expression{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:8px;
+    margin-bottom:7px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    border-radius:10px;
+}
+
+.dot{
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    flex:none;
+}
+
+.exprInput{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:var(--bg);
+    color:var(--text);
+    padding:10px;
+    outline:none;
+    font-size:15px;
+}
+
+.exprInput:focus{
+    border-color:var(--accent);
+}
+
+.del{
+    border:0;
+    background:transparent;
+    color:#ef4444;
+    font-size:21px;
+    cursor:pointer;
+}
+
+/* KEYBOARD */
+
+.keyboard{
+    border-top:1px solid var(--border);
+    padding:8px;
+    background:var(--panel);
+}
+
+.keyGrid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:5px;
+}
+
+.key{
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:var(--panel2);
+    color:var(--text);
+    min-height:35px;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.key:hover{
+    background:var(--accent);
+    color:white;
+}
+
+.key.big{
+    grid-column:span 2;
+}
+
+/* LOWER PANEL */
+
+.bottomPanel{
+    border-top:1px solid var(--border);
+    max-height:220px;
+    overflow:auto;
+    padding:10px;
+}
+
+.panelTitle{
+    font-weight:800;
+    margin-bottom:8px;
+}
+
+.sliderRow{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:7px 0;
+}
+
+.sliderRow input{
+    flex:1;
+}
+
+.sliderValue{
+    width:55px;
+    text-align:right;
+    color:#60a5fa;
+}
+
+/* GRAPH */
+
+.graph{
+    flex:1;
+    position:relative;
+    background:white;
+    min-width:0;
+}
+
+canvas{
+    width:100%;
+    height:100%;
+    display:block;
+    cursor:grab;
+}
+
+canvas.dragging{
+    cursor:grabbing;
+}
+
+.graphTools{
+    position:absolute;
+    top:14px;
+    right:14px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.graphTools button{
+    width:42px;
+    height:42px;
+    border:1px solid #d1d5db;
+    background:white;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:18px;
+    box-shadow:0 2px 7px rgba(0,0,0,.12);
+}
+
+.graphTools button:hover{
+    background:#eef2ff;
+}
+
+.coords{
+    position:absolute;
+    left:14px;
+    bottom:14px;
+    background:rgba(15,23,42,.9);
+    color:white;
+    border-radius:8px;
+    padding:8px 11px;
+    font-size:12px;
+}
+
+.status{
+    position:absolute;
+    top:14px;
+    left:14px;
+    padding:6px 9px;
+    border-radius:7px;
+    background:rgba(15,23,42,.85);
+    color:white;
+    font-size:11px;
+}
+
+/* TABLE MODAL */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.65);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modalBox{
+    width:min(850px,94vw);
+    max-height:85vh;
+    overflow:auto;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+}
+
+.modalHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.close{
+    border:0;
+    background:var(--panel2);
+    color:var(--text);
+    border-radius:7px;
+    padding:7px 12px;
+    cursor:pointer;
+}
+
+.tableWrap{
+    overflow:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:8px;
+    border:1px solid var(--border);
+    text-align:center;
+}
+
+th{
+    background:var(--panel2);
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+    .sidebar{
+        width:290px;
+    }
+
+    .brandText{
+        font-size:17px;
+    }
+
+    .keyboard{
+        max-height:190px;
+        overflow:auto;
+    }
+}
+
+@media(max-width:600px){
+
+    .sidebar{
+        width:100%;
+        position:absolute;
+        left:0;
+        top:62px;
+        bottom:0;
+        z-index:20;
+        transform:translateX(-100%);
+        transition:.25s;
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .graph{
+        width:100%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+    <div class="brand">
+        <div class="logo">GP</div>
+
+        <div class="brandText">
+            Graph<span>Pro</span>
+            <span class="live">LIVE</span>
+        </div>
+    </div>
+
+    <div class="headerButtons">
+
+        <button class="iconBtn" onclick="toggleSidebar()" title="Menu">
+            ☰
+        </button>
+
+        <button class="iconBtn" onclick="toggleTheme()" title="Theme">
+            ☀
+        </button>
+
+        <button class="iconBtn" onclick="openTable()" title="Table">
+            ▦
+        </button>
+
+        <button class="iconBtn" onclick="exportPNG()" title="Export PNG">
+            ↓
+        </button>
+
+        <button class="iconBtn" onclick="fullscreen()" title="Fullscreen">
+            ⛶
+        </button>
+
+    </div>
+
+</header>
+
+
+<main class="main">
+
+<!-- SIDEBAR -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="toolbar">
+
+        <button class="primary" onclick="addExpression()">
+            + Expression
+        </button>
+
+        <button class="secondary" onclick="clearAll()">
+            Clear
+        </button>
+
+    </div>
+
+
+    <div class="expressions" id="expressions"></div>
+
+
+    <!-- KEYBOARD -->
+
+    <div class="keyboard">
+
+        <div class="keyGrid">
+
+            <button class="key" onclick="insertKey('sin(')">sin</button>
+            <button class="key" onclick="insertKey('cos(')">cos</button>
+            <button class="key" onclick="insertKey('tan(')">tan</button>
+            <button class="key" onclick="insertKey('sec(')">sec</button>
+            <button class="key" onclick="insertKey('csc(')">csc</button>
+            <button class="key" onclick="insertKey('cot(')">cot</button>
+
+            <button class="key" onclick="insertKey('sqrt(')">√</button>
+            <button class="key" onclick="insertKey('log(')">log</button>
+            <button class="key" onclick="insertKey('ln(')">ln</button>
+            <button class="key" onclick="insertKey('abs(')">abs</button>
+            <button class="key" onclick="insertKey('exp(')">exp</button>
+            <button class="key" onclick="insertKey('pi')">π</button>
+
+            <button class="key" onclick="insertKey('7')">7</button>
+            <button class="key" onclick="insertKey('8')">8</button>
+            <button class="key" onclick="insertKey('9')">9</button>
+            <button class="key" onclick="insertKey('/')">÷</button>
+            <button class="key" onclick="insertKey('^')">xʸ</button>
+            <button class="key" onclick="insertKey('(')">(</button>
+
+            <button class="key" onclick="insertKey('4')">4</button>
+            <button class="key" onclick="insertKey('5')">5</button>
+            <button class="key" onclick="insertKey('6')">6</button>
+            <button class="key" onclick="insertKey('*')">×</button>
+            <button class="key" onclick="insertKey('x')">x</button>
+            <button class="key" onclick="insertKey(')')">)</button>
+
+            <button class="key" onclick="insertKey('1')">1</button>
+            <button class="key" onclick="insertKey('2')">2</button>
+            <button class="key" onclick="insertKey('3')">3</button>
+            <button class="key" onclick="insertKey('-')">−</button>
+            <button class="key" onclick="insertKey('.')">.</button>
+            <button class="key" onclick="backspace()">⌫</button>
+
+            <button class="key" onclick="insertKey('0')">0</button>
+            <button class="key big" onclick="insertKey('+')">+</button>
+            <button class="key big" onclick="insertKey('y = ')">y =</button>
+
+        </div>
+
+    </div>
+
+
+    <!-- TOOLS -->
+
+    <div class="bottomPanel">
+
+        <div class="panelTitle">Advanced Tools</div>
+
+        <button class="secondary" onclick="addSlider()">
+            🎚 Add Slider
+        </button>
+
+        <button class="secondary" onclick="derivative()">
+            f′(x)
+        </button>
+
+        <button class="secondary" onclick="integral()">
+            ∫ Integral
+        </button>
+
+        <div id="sliders"></div>
+
+    </div>
+
+</aside>
+
+
+<!-- GRAPH -->
+
+<section class="graph">
+
+    <canvas id="canvas"></canvas>
+
+    <div class="status" id="status">
+        GraphPro • Ready
+    </div>
+
+    <div class="graphTools">
+
+        <button onclick="zoom(1.25)">+</button>
+
+        <button onclick="zoom(.8)">−</button>
+
+        <button onclick="resetView()">⌂</button>
+
+        <button onclick="centerOrigin()">◎</button>
+
+    </div>
+
+    <div class="coords" id="coords">
+        x: 0.00 &nbsp; y: 0.00
+    </div>
+
+</section>
+
+</main>
+
+</div>
+
+
+<!-- TABLE -->
+
+<div class="modal" id="tableModal">
+
+    <div class="modalBox">
+
+        <div class="modalHeader">
+
+            <h2>📊 Function Table</h2>
+
+            <button class="close" onclick="closeTable()">
+                Close
+            </button>
+
+        </div>
+
+        <div class="tableWrap" id="tableContent"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   GRAPHPRO ENGINE
+========================= */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const expressionsDiv =
+    document.getElementById("expressions");
+
+const coords =
+    document.getElementById("coords");
+
+const status =
+    document.getElementById("status");
+
+let expressions = [];
+
+let colors = [
+    "#2563eb",
+    "#dc2626",
+    "#16a34a",
+    "#9333ea",
+    "#ea580c",
+    "#0891b2",
+    "#db2777",
+    "#65a30d"
+];
+
+let view = {
+    x:0,
+    y:0,
+    scale:50
+};
+
+let dragging=false;
+
+let lastMouse={
+    x:0,
+    y:0
+};
+
+let activeInput=null;
+
+let sliders={
+    a:1,
+    b:2,
+    c:3
+};
+
+
+/* =========================
+   CANVAS
+========================= */
+
+function resize(){
+
+    const r=canvas.getBoundingClientRect();
+
+    canvas.width=r.width*devicePixelRatio;
+    canvas.height=r.height*devicePixelRatio;
+
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
+    );
+
+    draw();
+}
+
+window.addEventListener("resize",resize);
+
+
+/* =========================
+   COORDINATES
+========================= */
+
+function screenToMath(px,py){
+
+    return {
+
+        x:
+        (px-canvas.clientWidth/2-view.x)
+        /view.scale,
+
+        y:
+        -(py-canvas.clientHeight/2-view.y)
+        /view.scale
+
+    };
+}
+
+
+function mathToScreen(x,y){
+
+    return {
+
+        x:
+        canvas.clientWidth/2
+        +view.x
+        +x*view.scale,
+
+        y:
+        canvas.clientHeight/2
+        +view.y
+        -y*view.scale
+
+    };
+}
+
+
+/* =========================
+   GRID
+========================= */
+
+function niceStep(){
+
+    const target=60/view.scale;
+
+    const power=
+        Math.pow(10,Math.floor(Math.log10(target)));
+
+    const n=target/power;
+
+    if(n<1.5)return power;
+
+    if(n<3)return 2*power;
+
+    if(n<7)return 5*power;
+
+    return 10*power;
+}
+
+
+function drawGrid(){
+
+    const w=canvas.clientWidth;
+    const h=canvas.clientHeight;
+
+    ctx.fillStyle=getComputedStyle(
+        document.documentElement
+    ).getPropertyValue("--canvas") || "#fff";
+
+    ctx.fillRect(0,0,w,h);
+
+    const step=niceStep();
+
+    const min=screenToMath(0,h);
+    const max=screenToMath(w,0);
+
+    ctx.strokeStyle="#e5e7eb";
+    ctx.lineWidth=1;
+
+    ctx.beginPath();
+
+    for(
+        let x=Math.floor(min.x/step)*step;
+        x<=max.x;
+        x+=step
+    ){
+
+        const p=mathToScreen(x,0);
+
+        ctx.moveTo(p.x,0);
+        ctx.lineTo(p.x,h);
+    }
+
+    for(
+        let y=Math.floor(min.y/step)*step;
+        y<=max.y;
+        y+=step
+    ){
+
+        const p=mathToScreen(0,y);
+
+        ctx.moveTo(0,p.y);
+        ctx.lineTo(w,p.y);
+    }
+
+    ctx.stroke();
+
+
+    /* AXES */
+
+    const origin=mathToScreen(0,0);
+
+    ctx.strokeStyle="#334155";
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(origin.x,0);
+    ctx.lineTo(origin.x,h);
+
+    ctx.moveTo(0,origin.y);
+    ctx.lineTo(w,origin.y);
+
+    ctx.stroke();
+
+
+    /* NUMBERS */
+
+    ctx.fillStyle="#475569";
+    ctx.font="12px Arial";
+
+    for(
+        let x=Math.floor(min.x/step)*step;
+        x<=max.x;
+        x+=step
+    ){
+
+        if(Math.abs(x)<step/10)continue;
+
+        const p=mathToScreen(x,0);
+
+        ctx.fillText(
+            Number(x.toFixed(5)),
+            p.x+4,
+            origin.y-5
+        );
+    }
+
+    for(
+        let y=Math.floor(min.y/step)*step;
+        y<=max.y;
+        y+=step
+    ){
+
+        if(Math.abs(y)<step/10)continue;
+
+        const p=mathToScreen(0,y);
+
+        ctx.fillText(
+            Number(y.toFixed(5)),
+            origin.x+5,
+            p.y-5
+        );
+    }
+}
+
+
+/* =========================
+   EXPRESSION
+========================= */
+
+function addExpression(value=""){
+
+    expressions.push({
+
+        id:Date.now()+Math.random(),
+
+        value:value,
+
+        color:
+        colors[
+            expressions.length%colors.length
+        ]
+
+    });
+
+    renderExpressions();
+
+    draw();
+
+    save();
+}
+
+
+function renderExpressions(){
+
+    expressionsDiv.innerHTML="";
+
+    expressions.forEach(exp=>{
+
+        const div=document.createElement("div");
+
+        div.className="expression";
+
+        div.innerHTML=`
+
+            <div class="dot"
+                 style="background:${exp.color}">
+            </div>
+
+            <input
+                class="exprInput"
+                placeholder="y = x^2"
+                value="${escapeHTML(exp.value)}"
+                data-id="${exp.id}"
+            >
+
+            <button class="del"
+                onclick="deleteExpression('${exp.id}')">
+                ×
+            </button>
+
+        `;
+
+        expressionsDiv.appendChild(div);
+
+    });
+
+
+    document
+    .querySelectorAll(".exprInput")
+    .forEach(input=>{
+
+        input.addEventListener(
+            "focus",
+            ()=>activeInput=input
+        );
+
+        input.addEventListener(
+            "input",
+            ()=>{
+
+                const exp=
+                expressions.find(
+                    e=>String(e.id)
+                    ===input.dataset.id
+                );
+
+                if(exp){
+
+                    exp.value=input.value;
+
+                    draw();
+
+                    save();
+                }
+
+            }
+        );
+
+    });
+}
+
+
+function escapeHTML(str){
+
+    return str
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+
+function deleteExpression(id){
+
+    expressions=
+    expressions.filter(
+        e=>String(e.id)!==String(id)
+    );
+
+    renderExpressions();
+
+    draw();
+
+    save();
+}
+
+
+function clearAll(){
+
+    expressions=[];
+
+    renderExpressions();
+
+    draw();
+
+    save();
+}
+
+
+/* =========================
+   MATH FUNCTIONS
+========================= */
+
+function buildScope(x){
+
+    return {
+
+        x:x,
+
+        a:sliders.a,
+        b:sliders.b,
+        c:sliders.c,
+
+        pi:Math.PI,
+        e:Math.E,
+
+        sin:Math.sin,
+        cos:Math.cos,
+        tan:Math.tan,
+
+        sec:(v)=>1/Math.cos(v),
+        csc:(v)=>1/Math.sin(v),
+        cot:(v)=>1/Math.tan(v),
+
+        sqrt:Math.sqrt,
+        abs:Math.abs,
+        log:Math.log10,
+        ln:Math.log,
+        exp:Math.exp,
+
+        asin:Math.asin,
+        acos:Math.acos,
+        atan:Math.atan
+
+    };
+}
+
+
+function cleanExpression(expression){
+
+    let e=expression
+    .trim()
+    .replace(/^y\s*=/i,"")
+    .replace(/^f\(x\)\s*=/i,"");
+
+    return e;
+}
+
+
+function evaluateExpression(expression,x){
+
+    try{
+
+        const clean=cleanExpression(expression);
+
+        const node=
+            math.parse(clean);
+
+        const scope=
+            buildScope(x);
+
+        return node.evaluate(scope);
+
+    }catch{
+
+        return NaN;
+    }
+}
+
+
+/* =========================
+   DRAW FUNCTIONS
+========================= */
+
+function drawFunctions(){
+
+    const w=canvas.clientWidth;
+
+    expressions.forEach(exp=>{
+
+        if(!exp.value.trim())return;
+
+        ctx.strokeStyle=exp.color;
+        ctx.lineWidth=2.6;
+
+        ctx.beginPath();
+
+        let started=false;
+        let previousY=null;
+
+        for(let px=0;px<w;px++){
+
+            const point=
+                screenToMath(px,0);
+
+            const y=
+                evaluateExpression(
+                    exp.value,
+                    point.x
+                );
+
+            if(
+                typeof y!=="number" ||
+                !Number.isFinite(y)
+            ){
+
+                started=false;
+                previousY=null;
+
+                continue;
+            }
+
+            const p=
+                mathToScreen(
+                    point.x,
+                    y
+                );
+
+            if(
+                p.y < -10000 ||
+                p.y > canvas.clientHeight+10000
+            ){
+
+                started=false;
+                previousY=null;
+
+                continue;
+            }
+
+            if(
+                previousY!==null &&
+                Math.abs(p.y-previousY)
+                >canvas.clientHeight
+            ){
+
+                started=false;
+            }
+
+            if(!started){
+
+                ctx.moveTo(p.x,p.y);
+
+                started=true;
+
+            }else{
+
+                ctx.lineTo(p.x,p.y);
+
+            }
+
+            previousY=p.y;
+        }
+
+        ctx.stroke();
+
+    });
+}
+
+
+/* =========================
+   DRAW
+========================= */
+
+function draw(){
+
+    drawGrid();
+
+    drawFunctions();
+
+    status.textContent=
+        "GraphPro • "+expressions.length+
+        " expression"+
+        (expressions.length===1?"":"s");
+}
+
+
+/* =========================
+   ZOOM
+========================= */
+
+function zoom(factor){
+
+    view.scale*=factor;
+
+    view.scale=
+        Math.max(5,
+        Math.min(1000,view.scale));
+
+    draw();
+}
+
+
+function resetView(){
+
+    view={
+        x:0,
+        y:0,
+        scale:50
+    };
+
+    draw();
+}
+
+
+function centerOrigin(){
+
+    view.x=0;
+    view.y=0;
+
+    draw();
+}
+
+
+/* =========================
+   MOUSE
+========================= */
+
+canvas.addEventListener(
+    "mousedown",
+    e=>{
+
+        dragging=true;
+
+        canvas.classList.add("dragging");
+
+        lastMouse.x=e.clientX;
+        lastMouse.y=e.clientY;
+
+    }
+);
+
+
+window.addEventListener(
+    "mouseup",
+    ()=>{
+
+        dragging=false;
+
+        canvas.classList.remove("dragging");
+
+    }
+);
+
+
+window.addEventListener(
+    "mousemove",
+    e=>{
+
+        if(dragging){
+
+            const dx=
+                e.clientX-lastMouse.x;
+
+            const dy=
+                e.clientY-lastMouse.y;
+
+            view.x+=dx;
+            view.y+=dy;
+
+            lastMouse.x=e.clientX;
+            lastMouse.y=e.clientY;
+
+            draw();
+        }
+
+    }
+);
+
+
+/* =========================
+   WHEEL ZOOM
+========================= */
+
+canvas.addEventListener(
+    "wheel",
+    e=>{
+
+        e.preventDefault();
+
+        const before=
+            screenToMath(
+                e.offsetX,
+                e.offsetY
+            );
+
+        zoom(
+            e.deltaY<0?1.15:.87
+        );
+
+        const after=
+            screenToMath(
+                e.offsetX,
+                e.offsetY
+            );
+
+        view.x+=
+            (after.x-before.x)
+            *view.scale;
+
+        view.y-=
+            (after.y-before.y)
+            *view.scale;
+
+        draw();
+
+    },
+    {passive:false}
+);
+
+
+/* =========================
+   COORDINATES
+========================= */
+
+canvas.addEventListener(
+    "mousemove",
+    e=>{
+
+        const p=
+            screenToMath(
+                e.offsetX,
+                e.offsetY
+            );
+
+        coords.innerHTML=
+            `x: ${p.x.toFixed(3)}
+             &nbsp;&nbsp;
+             y: ${p.y.toFixed(3)}`;
+
+    }
+);
+
+
+/* =========================
+   KEYBOARD
+========================= */
+
+function insertKey(value){
+
+    if(!activeInput){
+
+        addExpression(value);
+
+        const inputs=
+            document.querySelectorAll(
+                ".exprInput"
+            );
+
+        activeInput=
+            inputs[inputs.length-1];
+
+        activeInput.focus();
+
+        return;
+    }
+
+    const start=
+        activeInput.selectionStart;
+
+    const end=
+        activeInput.selectionEnd;
+
+    const text=activeInput.value;
+
+    activeInput.value=
+        text.substring(0,start)
+        +value
+        +text.substring(end);
+
+    activeInput.focus();
+
+    activeInput.selectionStart=
+    activeInput.selectionEnd=
+        start+value.length;
+
+    activeInput.dispatchEvent(
+        new Event("input")
+    );
+}
+
+
+function backspace(){
+
+    if(!activeInput)return;
+
+    const start=
+        activeInput.selectionStart;
+
+    const end=
+        activeInput.selectionEnd;
+
+    if(start===end && start>0){
+
+        activeInput.value=
+            activeInput.value.substring(0,start-1)
+            +activeInput.value.substring(end);
+
+        activeInput.selectionStart=
+        activeInput.selectionEnd=
+            start-1;
+
+    }else{
+
+        activeInput.value=
+            activeInput.value.substring(0,start)
+            +activeInput.value.substring(end);
+
+        activeInput.selectionStart=
+        activeInput.selectionEnd=
+            start;
+    }
+
+    activeInput.dispatchEvent(
+        new Event("input")
+    );
+}
+
+
+/* =========================
+   TABLE
+========================= */
+
+function openTable(){
+
+    const modal=
+        document.getElementById(
+            "tableModal"
+        );
+
+    const table=
+        document.getElementById(
+            "tableContent"
+        );
+
+    if(expressions.length===0){
+
+        table.innerHTML=
+            "<p>Add an expression first.</p>";
+
+        modal.classList.add("show");
+
+        return;
+    }
+
+    let html="<table><thead><tr><th>x</th>";
+
+    expressions.forEach((e,i)=>{
+
+        html+=
+            `<th>f${i+1}(x)</th>`;
+    });
+
+    html+="</tr></thead><tbody>";
+
+    for(let x=-5;x<=5;x+=.5){
+
+        html+=`<tr><td>${x}</td>`;
+
+        expressions.forEach(exp=>{
+
+            const y=
+                evaluateExpression(
+                    exp.value,
+                    x
+                );
+
+            html+=
+                `<td>${
+                    Number.isFinite(y)
+                    ?Number(y.toFixed(5))
+                    :"—"
+                }</td>`;
+
+        });
+
+        html+="</tr>";
+    }
+
+    html+="</tbody></table>";
+
+    table.innerHTML=html;
+
+    modal.classList.add("show");
+}
+
+
+function closeTable(){
+
+    document
+    .getElementById("tableModal")
+    .classList.remove("show");
+}
+
+
+/* =========================
+   SLIDERS
+========================= */
+
+function addSlider(){
+
+    const name=
+        prompt(
+            "Variable name:",
+            "a"
+        );
+
+    if(!name)return;
+
+    const clean=
+        name.trim().toLowerCase();
+
+    if(!/^[a-z]$/.test(clean)){
+
+        alert(
+            "Use one letter: a, b or c"
+        );
+
+        return;
+    }
+
+    const value=
+        Number(
+            prompt(
+                "Starting value:",
+                sliders[clean] || 1
+            )
+        );
+
+    if(!Number.isFinite(value))return;
+
+    sliders[clean]=value;
+
+    renderSliders();
+
+    draw();
+}
+
+
+function renderSliders(){
+
+    const box=
+        document.getElementById(
+            "sliders"
+        );
+
+    box.innerHTML="";
+
+    Object.keys(sliders).forEach(name=>{
+
+        const row=
+            document.createElement("div");
+
+        row.className="sliderRow";
+
+        row.innerHTML=`
+
+            <b>${name}</b>
+
+            <input
+                type="range"
+                min="-10"
+                max="10"
+                step="0.1"
+                value="${sliders[name]}"
+                oninput="
+                    sliders['${name}']=Number(this.value);
+                    this.nextElementSibling.textContent=this.value;
+                    draw();
+                    save();
+                "
+            >
+
+            <span class="sliderValue">
+                ${sliders[name]}
+            </span>
+
+        `;
+
+        box.appendChild(row);
+
+    });
+}
+
+
+/* =========================
+   DERIVATIVE
+========================= */
+
+function derivative(){
+
+    if(!expressions.length){
+
+        alert("Add an equation first.");
+
+        return;
+    }
+
+    const exp=
+        expressions[
+            expressions.length-1
+        ].value;
+
+    const h=0.0001;
+
+    const derivativeFunction=
+        x=>{
+
+            const f1=
+                evaluateExpression(
+                    exp,x+h
+                );
+
+            const f2=
+                evaluateExpression(
+                    exp,x-h
+                );
+
+            return (f1-f2)/(2*h);
+
+        };
+
+    expressions.push({
+
+        id:Date.now()+Math.random(),
+
+        value:"Derivative of: "+exp,
+
+        color:
+            colors[
+                expressions.length
+                %colors.length
+            ],
+
+        customFunction:
+            derivativeFunction
+
+    });
+
+    /*
+      Custom derivative expression is handled
+      separately by replacing the text below.
+    */
+
+    expressions[
+        expressions.length-1
+    ].value=
+        `derivative(${cleanExpression(exp)})`;
+
+    renderExpressions();
+
+    draw();
+
+    alert(
+        "Derivative added numerically.\n"+
+        "The graph uses central-difference approximation."
+    );
+}
+
+
+/* =========================
+   INTEGRAL
+========================= */
+
+function integral(){
+
+    if(!expressions.length){
+
+        alert("Add an equation first.");
+
+        return;
+    }
+
+    const exp=
+        expressions[
+            expressions.length-1
+        ].value;
+
+    const a=
+        Number(
+            prompt(
+                "Lower limit:",
+                0
+            )
+        );
+
+    const b=
+        Number(
+            prompt(
+                "Upper limit:",
+                1
+            )
+        );
+
+    if(
+        !Number.isFinite(a) ||
+        !Number.isFinite(b)
+    )return;
+
+    const n=1000;
+
+    let sum=0;
+
+    const h=(b-a)/n;
+
+    for(let i=0;i<=n;i++){
+
+        const x=a+i*h;
+
+        const y=
+            evaluateExpression(
+                exp,x
+            );
+
+        if(!Number.isFinite(y))continue;
+
+        const weight=
+            i===0||i===n
+            ?1
+            :(i%2===0?2:4);
+
+        sum+=weight*y;
+    }
+
+    const result=
+        sum*h/3;
+
+    alert(
+        `Numerical integral of\n${exp}\n\n`+
+        `[${a}, ${b}] = ${result}`
+    );
+}
+
+
+/* =========================
+   EXPORT
+========================= */
+
+function exportPNG(){
+
+    const link=
+        document.createElement("a");
+
+    link.download=
+        "GraphPro-graph.png";
+
+    link.href=
+        canvas.toDataURL("image/png");
+
+    link.click();
+}
+
+
+/* =========================
+   THEME
+========================= */
+
+function toggleTheme(){
+
+    document.body.classList.toggle(
+        "light"
+    );
+
+    localStorage.setItem(
+        "graphpro-theme",
+        document.body.classList.contains("light")
+        ?"light"
+        :"dark"
+    );
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+function toggleSidebar(){
+
+    document
+    .getElementById("sidebar")
+    .classList.toggle("open");
+}
+
+
+/* =========================
+   FULLSCREEN
+========================= */
+
+function fullscreen(){
+
+    if(!document.fullscreenElement){
+
+        document.documentElement
+        .requestFullscreen();
+
+    }else{
+
+        document.exitFullscreen();
+
+    }
+}
+
+
+/* =========================
+   SAVE
+========================= */
+
+function save(){
+
+    localStorage.setItem(
+        "graphpro-expressions",
+        JSON.stringify(expressions)
+    );
+
+    localStorage.setItem(
+        "graphpro-sliders",
+        JSON.stringify(sliders)
+    );
+}
+
+
+function load(){
+
+    try{
+
+        const saved=
+            localStorage.getItem(
+                "graphpro-expressions"
+            );
+
+        if(saved){
+
+            expressions=
+                JSON.parse(saved);
+
+            renderExpressions();
+
+        }else{
+
+            addExpression("y = x^2");
+
+            addExpression("y = sin(x)");
+
+        }
+
+        const savedSliders=
+            localStorage.getItem(
+                "graphpro-sliders"
+            );
+
+        if(savedSliders){
+
+            sliders=
+                JSON.parse(savedSliders);
+
+        }
+
+        renderSliders();
+
+    }catch{
+
+        expressions=[];
+
+        addExpression("y = x^2");
+
+    }
+
+    const theme=
+        localStorage.getItem(
+            "graphpro-theme"
+        );
+
+    if(theme==="light"){
+
+        document.body.classList.add(
+            "light"
+        );
+    }
+}
+
+
+/* =========================
+   EXTRA KEYBOARD SUPPORT
+========================= */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        if(
+            e.ctrlKey &&
+            e.key==="Enter"
+        ){
+
+            draw();
+
+        }
+
+        if(e.key==="Escape"){
+
+            closeTable();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   START
+========================= */
+
+load();
+
+resize();
+
+</script>
+
+</body>
+</html>
